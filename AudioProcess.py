@@ -2,10 +2,7 @@ import json
 import base64
 import wave
 
-def convert_audio(file_name):
-    with open(file_name, 'r') as file:
-        data = json.load(file)
-
+def convert_audio(data):
     # Get the audio data from the JSON
     audio_data = data['content']
     # Get the audio name from the JSON
