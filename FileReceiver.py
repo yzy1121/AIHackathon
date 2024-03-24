@@ -27,6 +27,7 @@ def upload_file(file_name, bucket, object_name=None):
 
 @app.route('/upload', methods=['GET','POST'])
 def upload():
+    print(request.headers.get('Content-Type'))
     file = request.get_json()
     file_name = convert_audio(file)
     bucket_name = 'hackathonrecordings'
