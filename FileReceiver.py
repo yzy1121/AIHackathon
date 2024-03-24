@@ -25,7 +25,7 @@ def upload_file(file_name, bucket, object_name=None):
 
 
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['GET','POST'])
 def upload():
     file = request.get_json()
     file_name = convert_audio(file)
