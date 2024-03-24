@@ -1,32 +1,36 @@
 import base64
 import json
 import time
-import wave
+import os
 
-def encode_wav_to_json(wav_file_path):
-    # Read the .wav file's binary content
-    with wave.open(wav_file_path, 'rb') as wav_file:
-        # Read the .wav file's frames and parameters
-        wav_data = wav_file.readframes(wav_file.getnframes())
-        params = wav_file.getparams()
+def encode_m4a_to_json(m4a_file_path):
+    # Extract the base filename without the extension
+    base_filename = os.path.splitext(m4a_file_path)[0]
+    
+    # Read the M4A file's binary content
+    with open(m4a_file_path, 'rb') as audio_file:
+        audio_data = audio_file.read()
 
     # Encode the binary data to base64
-    encoded_wav = base64.b64encode(wav_data).decode('utf-8')
+    encoded_audio = base64.b64encode(audio_data).decode('utf-8')
 
-    # Construct a JSON object with the encoded data and the parameters
+    # Construct a JSON object with the encoded data
     json_data = json.dumps({
-        "content": encoded_wav,
+        "content": encoded_audio,
         "date": time.strftime("%Y%m%d-%H%M%S"),
-        "params": params._asdict()  # Convert params to a dictionary
+        "format": "m4a"
     })
-    return json_data
 
-wav_file_path = 'test0.wav'  # Replace with the path to your .wav file
-json_data = encode_wav_to_json(wav_file_path)
+    # Here, return both json_data and the base_filename
+    return json_data, base_filename  # Return both values
 
-# Now `json_data` contains your .wav file encoded as base64 in a JSON object
-# You can save this JSON data to a file or use it as needed
-# save the json data to a file
-with open('encoded_wav0.json', 'w') as json_file:
+# Example usage
+m4a_file_path = 'test1.m4a'  # Replace with the path to your M4A file
+json_data, base_filename = encode_m4a_to_json(m4a_file_path)  # This now correctly receives two values
+
+# Save the JSON data to a file that shares the same base filename
+json_file_path = f'{base_filename}.json'
+with open(json_file_path, 'w') as json_file:
     json_file.write(json_data)
 
+print(f'JSON data has been saved to {json_file_path}')
