@@ -1,26 +1,32 @@
 import base64
 import json
 import time
+import wave
 
 def encode_wav_to_json(wav_file_path):
     # Read the .wav file's binary content
-    with open(wav_file_path, 'rb') as wav_file:
-        wav_data = wav_file.read()
+    with wave.open(wav_file_path, 'rb') as wav_file:
+        # Read the .wav file's frames and parameters
+        wav_data = wav_file.readframes(wav_file.getnframes())
+        params = wav_file.getparams()
 
     # Encode the binary data to base64
     encoded_wav = base64.b64encode(wav_data).decode('utf-8')
 
-    # Construct a JSON object with the encoded data
-    json_data = json.dumps({"content": encoded_wav, "date": time.strftime("%Y%m%d-%H%M%S")})
-
+    # Construct a JSON object with the encoded data and the parameters
+    json_data = json.dumps({
+        "content": encoded_wav,
+        "date": time.strftime("%Y%m%d-%H%M%S"),
+        "params": params._asdict()  # Convert params to a dictionary
+    })
     return json_data
 
-wav_file_path = 'test1.wav'  # Replace with the path to your .wav file
+wav_file_path = 'test0.wav'  # Replace with the path to your .wav file
 json_data = encode_wav_to_json(wav_file_path)
 
 # Now `json_data` contains your .wav file encoded as base64 in a JSON object
 # You can save this JSON data to a file or use it as needed
 # save the json data to a file
-with open('encoded_wav1.json', 'w') as json_file:
+with open('encoded_wav0.json', 'w') as json_file:
     json_file.write(json_data)
 
