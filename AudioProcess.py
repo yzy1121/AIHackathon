@@ -1,47 +1,41 @@
-# import json
-# import base64
-# import wave
-
-# def convert_audio(data):
-#     # Get the audio data from the JSON
-#     audio_data = data['content']
-#     # Get the audio name from the JSON
-#     audio_name = data['date']
-#     # Decode the base64 encoded audio data
-#     decoded_audio = base64.b64decode(audio_data)
-
-#     # Write the decoded audio data to a .wav file, use the audio date as the file name
-#     with wave.open(f'{audio_name}.wav', 'wb') as wav_file:
-#         wav_file.setnchannels(1)  # Set the number of channels (1 for mono, 2 for stereo)
-#         wav_file.setsampwidth(2)  # Set the sample width (2 bytes for 16-bit audio)
-#         wav_file.setframerate(44100)  # Set the sample rate (44100 Hz is standard for audio)
-#         wav_file.writeframes(decoded_audio)
-
-# file_name = 'encoded_wav1.json'
-# with open(file_name, 'r') as file:
-#     data = json.load(file)
-
-# convert_audio(data)
-
 import json
 import base64
-import wave
+import subprocess
+import os
 
-def convert_json_to_audio(json_file_path):
-    # Load the JSON data
-    with open(json_file_path, 'r') as json_file:
-        data = json.load(json_file)
+def convert_json_to_m4a(json_file_path):
+    try:
+        # Load the JSON data
+        with open(json_file_path, 'r') as json_file:
+            data = json.load(json_file)
+        
+        # Decode the base64 audio content
+        audio_data = base64.b64decode(data['content'])
 
-    audio_data = base64.b64decode(data['content'])
-    audio_name = data['date']
+        # Temporary file for the decoded audio
+        temp_audio_path = f"{data['date']}.tmp"
+        # Target M4A file path
+        m4a_file_path = f"{data['date']}.m4a"
+        
+        # Write the decoded audio data to a temporary file
+        with open(temp_audio_path, 'wb') as temp_audio_file:
+            temp_audio_file.write(audio_data)
 
-    # Use the properties from the JSON
-    with wave.open(f'{audio_name}.wav', 'wb') as wav_file:
-        wav_file.setnchannels(data['n_channels'])
-        wav_file.setsampwidth(data['sampwidth'])
-        wav_file.setframerate(data['framerate'])
-        wav_file.writeframes(audio_data)
+        # Convert the temporary audio file to M4A using ffmpeg
+        subprocess.run(['ffmpeg', '-i', temp_audio_path, m4a_file_path])
+        print(f"Converted to M4A: {m4a_file_path}")
+
+    except KeyError as e:
+        print(f"Missing key in JSON data: {e}")
+    except subprocess.CalledProcessError as e:
+        print(f"ffmpeg error: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Cleanup: Remove the temporary file if it exists
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
 
 # Example usage
-json_file_path = 'encoded_wav1.json'
-convert_json_to_audio(json_file_path)
+json_file_path = 'test1.json'  # Adjust the file path as needed
+convert_json_to_m4a(json_file_path)

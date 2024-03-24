@@ -58,7 +58,7 @@ def convert_txt(file):
             print(f"Deleted {obj.key} from {bucket_name}.")
 
     print("Transcription text has been saved to 'transcription.txt'")
-    return f'{json_data['jobName']}.txt'
+    return f"{json_data['jobName']}.txt"
         
 
 # snippet-start:[python.example_code.comprehend.Usage_DetectApis]
@@ -69,7 +69,7 @@ def start_analysis():
     senti_analysis = SentimentAnalysis(boto3.client("comprehend"))
     # convert every file in the s3 bucket to txt
     s3 = boto3.resource('s3')
-    bucket_name = 'hackathontranscripts'
+    bucket_name = 'hackathontranscriptions'
     bucket = s3.Bucket(bucket_name)
     text_files = []
 
