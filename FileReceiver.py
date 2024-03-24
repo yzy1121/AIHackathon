@@ -2,7 +2,7 @@ from flask import Flask
 import boto3
 from flask import request
 import logging
-from AudioProcess import convert_audio
+from AudioProcess import convert_json_to_m4a
 from botocore.exceptions import ClientError
 import os
 
@@ -29,7 +29,7 @@ def upload_file(file_name, bucket, object_name=None):
 def upload():
     print(request.headers.get('Content-Type'))
     file = request.get_json()
-    file_name = convert_audio(file)
+    file_name = convert_json_to_m4a(file)
     bucket_name = 'hackathonrecordings'
 
     # Upload the file to S3
