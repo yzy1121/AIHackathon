@@ -9,7 +9,7 @@ def transcribe_file(job_name, file_uri, transcribe_client):
     transcribe_client.start_transcription_job(
         TranscriptionJobName=job_name,
         Media={"MediaFileUri": file_uri},
-        MediaFormat="wav",
+        MediaFormat="m4a",
         LanguageCode="en-US",
         OutputBucketName="hackathontranscriptions",
         Settings={
@@ -54,7 +54,7 @@ def transcribe():
     audio_files = []
 
     for obj in bucket.objects.all():
-        if obj.key.endswith('.wav'):
+        if obj.key.endswith('.m4a'):
             audio_files.append(obj.key)
 
     # Use the audio_files list to process each audio file

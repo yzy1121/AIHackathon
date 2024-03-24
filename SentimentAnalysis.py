@@ -39,28 +39,6 @@ class SentimentAnalysis:
 
     # snippet-end:[python.example_code.comprehend.DetectSentiment]
 
-def convert_txt(file):
-    # Load the json data
-    json_data = file.read()
-    # Extract the transcription text
-    transcription = json_data['results']['transcripts'][0]['transcript']
-
-    # Save the transcription to a text file in s3 bucket
-    s3 = boto3.resource('s3')
-    bucket_name = 'hackathontranscripts'
-    s3.Object(bucket_name, f"{json_data['jobName']}.txt").put(Body=transcription)
-
-    # delete the json file from s3
-    bucket = s3.Bucket(bucket_name)
-    for obj in bucket.objects.all():
-        if obj.key == file:
-            obj.delete()
-            print(f"Deleted {obj.key} from {bucket_name}.")
-
-    print("Transcription text has been saved to 'transcription.txt'")
-    return f"{json_data['jobName']}.txt"
-        
-
 # snippet-start:[python.example_code.comprehend.Usage_DetectApis]
 def start_analysis():
     print("-" * 88)
@@ -76,15 +54,26 @@ def start_analysis():
     for obj in bucket.objects.all():
         if obj.key.endswith('.json'):
             text_files.append(obj.key)
-
+    # For newly added files, we need to process them in a later round
+            
     for file in text_files:
         for obj in bucket.objects.all():
             if obj.key == file:
-                file_name = convert_txt(obj)
+                # convert the s3 obj to txt
+                json_response = obj.get()
+                json_content = json_response['Body'].read().decode('utf-8')  # Decode the content
+                # json_uri = f"s3://{bucket_name}/{file}"
+                json_data = json.loads(json_content)
+                transcription = json_data['results']['transcripts'][0]['transcript']
+                s3.Object(bucket_name, f"{json_data['jobName']}.txt").put(Body=transcription)
+                file_name = f"{json_data['jobName']}.txt"
+                # delete the converted json file
+                obj.delete()
+                print(f"Deleted {obj.key} from {bucket_name}.")
                 
                 # load the converted text file from s3
                 transcribe_file = s3.Object(bucket_name, file_name)
-                transcribe_text = transcribe_file.read()
+                transcribe_text = transcribe_file.get()['Body'].read().decode('utf-8')
 
                 lang_code = "en"
 
@@ -97,8 +86,8 @@ def start_analysis():
                 print("-" * 88)
 
                 # delete the text file from s3
-                obj.delete()
-                print(f"Deleted {obj.key} from {bucket_name}.")
+                transcribe_file.delete()
+                print(f"Deleted {file_name} from {bucket_name}.")
 
 # snippet-end:[python.example_code.comprehend.Usage_DetectApis]
 
