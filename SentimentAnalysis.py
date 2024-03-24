@@ -62,7 +62,7 @@ def convert_txt(file):
         
 
 # snippet-start:[python.example_code.comprehend.Usage_DetectApis]
-def start_analysis(file_name):
+def start_analysis():
     print("-" * 88)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -74,26 +74,29 @@ def start_analysis(file_name):
     text_files = []
 
     for obj in bucket.objects.all():
-        if obj.key.endswith('.txt'):
+        if obj.key.endswith('.json'):
             text_files.append(obj.key)
 
     for file in text_files:
-        with open(convert_txt(file)) as transcribe_file:
-            transcribe_text = transcribe_file.read()
-
-        lang_code = "en"
-
-        print("Detecting sentiment.")
-        sentiment = senti_analysis.detect_sentiment(transcribe_text, lang_code)
-        print(f"Sentiment: {sentiment['Sentiment']}")
-        print("SentimentScore:")
-        pprint(sentiment["SentimentScore"])
-
-        print("-" * 88)
-
-        # delete the text file from s3
         for obj in bucket.objects.all():
             if obj.key == file:
+                file_name = convert_txt(obj)
+                
+                # load the converted text file from s3
+                transcribe_file = s3.Object(bucket_name, file_name)
+                transcribe_text = transcribe_file.read()
+
+                lang_code = "en"
+
+                print("Detecting sentiment.")
+                sentiment = senti_analysis.detect_sentiment(transcribe_text, lang_code)
+                print(f"Sentiment: {sentiment['Sentiment']}")
+                print("SentimentScore:")
+                pprint(sentiment["SentimentScore"])
+
+                print("-" * 88)
+
+                # delete the text file from s3
                 obj.delete()
                 print(f"Deleted {obj.key} from {bucket_name}.")
 
@@ -101,4 +104,4 @@ def start_analysis(file_name):
 
 
 if __name__ == "__main__":
-    start_analysis('asrOutput.json')
+    start_analysis()
