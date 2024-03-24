@@ -3,22 +3,7 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 import os
-import urllib.request
 
-
-def upload_file(file_name, bucket, object_name=None):
-    # If S3 object_name was not specified, use file_name
-    if object_name is None:
-        object_name = os.path.basename(file_name)
-
-    # Upload the file
-    s3_client = boto3.client('s3')
-    try:
-        response = s3_client.upload_file(file_name, bucket, object_name)
-    except ClientError as e:
-        logging.error(e)
-        return False
-    return True
 
 def transcribe_file(job_name, file_uri, transcribe_client):
     transcribe_client.start_transcription_job(
@@ -45,6 +30,14 @@ def transcribe_file(job_name, file_uri, transcribe_client):
                     f"Download the transcript from\n"
                     f"\t{job['TranscriptionJob']['Transcript']['TranscriptFileUri']}."
                 )
+                # delete the audio file from s3
+                s3 = boto3.resource('s3')
+                bucket_name = 'hackathonrecordings'
+                bucket = s3.Bucket(bucket_name)
+                for obj in bucket.objects.all():
+                    if obj.key == file_uri.split('/')[-1]:
+                        obj.delete()
+                        print(f"Deleted {obj.key} from {bucket_name}.")
             break
         else:
             print(f"Waiting for {job_name}. Current status is {job_status}.")
@@ -52,17 +45,23 @@ def transcribe_file(job_name, file_uri, transcribe_client):
 
 
 
-def main():
-    # upload file to s3
-    file_name = "test0.wav"
-    bucket = "hackathonrecordings"
-    upload_file(file_name, bucket)
-
+def transcribe():
     transcribe_client = boto3.client("transcribe")
-    file_uri = "s3://hackathonrecordings/test0.wav"
+    # load the audio files from s3
+    s3 = boto3.resource('s3')
+    bucket_name = 'hackathonrecordings'
+    bucket = s3.Bucket(bucket_name)
+    audio_files = []
 
-    transcribe_file("Hackathon-jobtest1", file_uri, transcribe_client)
+    for obj in bucket.objects.all():
+        if obj.key.endswith('.wav'):
+            audio_files.append(obj.key)
 
+    # Use the audio_files list to process each audio file
+    for file in audio_files:
+        file_uri = f"s3://{bucket_name}/{file}"
+        job_name = f"job-{file.split('.')[0]}"
+        transcribe_file(job_name, file_uri, transcribe_client)
 
 if __name__ == "__main__":
-    main()
+    transcribe()

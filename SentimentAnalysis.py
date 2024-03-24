@@ -39,19 +39,26 @@ class SentimentAnalysis:
 
     # snippet-end:[python.example_code.comprehend.DetectSentiment]
 
-def convert_txt(file_name):
+def convert_txt(file):
     # Load the json data
-    with open(file_name, 'r') as file:
-        json_data = json.load(file)
-
+    json_data = file.read()
     # Extract the transcription text
     transcription = json_data['results']['transcripts'][0]['transcript']
 
-    # Save the transcription to a text file
-    with open('transcription.txt', 'w') as text_file:
-        text_file.write(transcription)
+    # Save the transcription to a text file in s3 bucket
+    s3 = boto3.resource('s3')
+    bucket_name = 'hackathontranscripts'
+    s3.Object(bucket_name, f"{json_data['jobName']}.txt").put(Body=transcription)
+
+    # delete the json file from s3
+    bucket = s3.Bucket(bucket_name)
+    for obj in bucket.objects.all():
+        if obj.key == file:
+            obj.delete()
+            print(f"Deleted {obj.key} from {bucket_name}.")
 
     print("Transcription text has been saved to 'transcription.txt'")
+    return f'{json_data['jobName']}.txt'
         
 
 # snippet-start:[python.example_code.comprehend.Usage_DetectApis]
@@ -59,23 +66,36 @@ def start_analysis(file_name):
     print("-" * 88)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    
-    convert_txt(file_name)
-
     senti_analysis = SentimentAnalysis(boto3.client("comprehend"))
-    with open("transcription.txt") as sample_file:
-        sample_text = sample_file.read()
+    # convert every file in the s3 bucket to txt
+    s3 = boto3.resource('s3')
+    bucket_name = 'hackathontranscripts'
+    bucket = s3.Bucket(bucket_name)
+    text_files = []
 
-    lang_code = "en"
+    for obj in bucket.objects.all():
+        if obj.key.endswith('.txt'):
+            text_files.append(obj.key)
 
-    print("Detecting sentiment.")
-    sentiment = senti_analysis.detect_sentiment(sample_text, lang_code)
-    print(f"Sentiment: {sentiment['Sentiment']}")
-    print("SentimentScore:")
-    pprint(sentiment["SentimentScore"])
+    for file in text_files:
+        with open(convert_txt(file)) as transcribe_file:
+            transcribe_text = transcribe_file.read()
 
-    print("-" * 88)
+        lang_code = "en"
 
+        print("Detecting sentiment.")
+        sentiment = senti_analysis.detect_sentiment(transcribe_text, lang_code)
+        print(f"Sentiment: {sentiment['Sentiment']}")
+        print("SentimentScore:")
+        pprint(sentiment["SentimentScore"])
+
+        print("-" * 88)
+
+        # delete the text file from s3
+        for obj in bucket.objects.all():
+            if obj.key == file:
+                obj.delete()
+                print(f"Deleted {obj.key} from {bucket_name}.")
 
 # snippet-end:[python.example_code.comprehend.Usage_DetectApis]
 
